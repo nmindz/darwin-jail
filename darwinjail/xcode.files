@@ -1,0 +1,52 @@
+# A jail that can run xcodebuild, on top of the base jail.
+#
+#   sudo python3 -m darwinjail -f darwinjail/xcode.files "$jail_dir"
+#
+# Requires a host where Xcode has been installed and launched once: this copies
+# what "xcodebuild -runFirstLaunch" installs, because that command cannot run
+# inside the jail (it fails to install MobileDeviceDevelopment.pkg with
+# PKInstallErrorDomain 105, a signature check the jail cannot satisfy).
+#
+# Do not pass --apple-internal with this manifest. The /AppleInternal/XBS
+# marker makes Xcode believe it runs inside Apple's internal build system and
+# refuse to build.
+#
+# This manifest only copies files. The jail additionally needs these empty
+# directories, which whoever builds the image has to create:
+#   /tmp, /private/{var,etc,tmp} symlinks back to the real directories
+#   /var/folders/zz/zyxvpxvq6csfxvn_n0000000000000/{T,C}, the paths
+#     confstr(_CS_DARWIN_USER_TEMP_DIR) and _CS_DARWIN_USER_CACHE_DIR return
+#     for root inside a chroot. Without them, every xcodebuild run logs
+#     "DVTDeveloperPaths: Failed to get length of DARWIN_USER_CACHE_DIR from
+#     confstr(3)".
+
+@include mkjail.files
+
+# Xcode itself
+/Applications/Xcode.app/
+
+# Installed by Xcode's first launch (com.apple.pkg.MobileDeviceDevelopment).
+# Without this, xcrun and xcodebuild abort while loading CoreDevice:
+#   Library not loaded: /System/Library/PrivateFrameworks/MobileDevice.framework/...
+#   Reason: tried: '...' (no such file, not in dyld cache)
+/Library/Apple/System/Library/PrivateFrameworks/
+/Library/Developer/CoreDevice/
+/Library/Developer/CoreSimulator/
+/Library/Developer/DeveloperDiskImages/
+/Library/Developer/DeviceKit/
+/Library/Developer/PrivateFrameworks/
+
+# These two entries are symlinks into /Library/Apple, so they are copied as
+# symlinks. The rest of /System/Library/PrivateFrameworks resolves from the
+# dyld shared cache and does not need to be in the jail.
+/System/Library/PrivateFrameworks/DeviceLink.framework
+/System/Library/PrivateFrameworks/MobileDevice.framework
+
+# SwiftPM compiles Package.swift under sandbox-exec, which reads these
+# profiles. Without them: sandbox-exec: unable to open "system.sb": not found
+/System/Library/Sandbox/
+
+# Xcode license acceptance (IDEXcodeVersionForAgreedToGMLicense). Read straight
+# from this file, not through cfprefsd, so the jail needs its own copy or every
+# invocation fails with "You have not agreed to the Xcode license agreements".
+/Library/Preferences/com.apple.dt.Xcode.plist
