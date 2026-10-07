@@ -140,6 +140,15 @@ def main():
         metavar="JAIL_FILES",
         help="Jail file(s) to use",
     )
+    parser.add_argument(
+        "--apple-internal",
+        action="store_true",
+        help="Create /AppleInternal/XBS/.isChrooted. Apple's build tools read "
+        "that marker as 'running inside Apple's internal build system' (XBS), "
+        "which makes Xcode refuse to build: 'Building with an inferred run "
+        "destination in XBS assumes `SDKROOT` being set in the process "
+        "environment'",
+    )
     args = parser.parse_args()
 
     files = args.files
@@ -151,10 +160,12 @@ def main():
 
     copy_files(args.jail_dir, queue)
 
-    # I'm not sure what this file does
-    chroot_marker = os.path.join(args.jail_dir, "AppleInternal", "XBS", ".isChrooted")
-    os.makedirs(os.path.dirname(chroot_marker), exist_ok=True)
-    open(chroot_marker, "a").close()
+    if args.apple_internal:
+        chroot_marker = os.path.join(
+            args.jail_dir, "AppleInternal", "XBS", ".isChrooted"
+        )
+        os.makedirs(os.path.dirname(chroot_marker), exist_ok=True)
+        open(chroot_marker, "a").close()
 
     # TODO: We do not want this to appear in docker image. Make separate build/run commands?
     # mDNSResponder = os.path.join(jail_dir, "var", "run", "mDNSResponder")
