@@ -13,7 +13,8 @@
 #
 # This manifest only copies files. The jail additionally needs these empty
 # directories, which whoever builds the image has to create:
-#   /tmp, /private/{var,etc,tmp} symlinks back to the real directories
+#   /tmp and /var/tmp, mode 1777. git fails without /var/tmp.
+#   /private/{var,etc,tmp} symlinks back to the real directories
 #   /var/folders/zz/zyxvpxvq6csfxvn_n0000000000000/{T,C}, the paths
 #     confstr(_CS_DARWIN_USER_TEMP_DIR) and _CS_DARWIN_USER_CACHE_DIR return
 #     for root inside a chroot. Without them, every xcodebuild run logs
